@@ -28,11 +28,11 @@ namespace NinjaTrader.NinjaScript.Indicators.SDFree
 	{
 		#region values
 			
-			double currentTypicalPrice 							= 0;
-			double currentVolumeTypicalPrice 					= 0;
+			double currentTypicalPrice 						= 0;
+			double currentVolumeTypicalPrice 				= 0;
 			double cumulativeVolumeWeightedPrice 			= 0;
 			double cumulativeVolume 						= 0;
-			double vwap 									= 0;
+			double currentVWAP								= 0;
 			
 		#endregion
 		
@@ -57,8 +57,8 @@ namespace NinjaTrader.NinjaScript.Indicators.SDFree
 				
 				#region 00. Sessions Times
 				
-					customCalculation							= false;
-					startCalculation 							= DateTime.Parse("08:30");
+					customCalculation						= false;
+					startCalculation 						= DateTime.Parse("08:30");
 				
 				#endregion
 				
@@ -76,29 +76,46 @@ namespace NinjaTrader.NinjaScript.Indicators.SDFree
 		protected override void OnBarUpdate()
 		{
 			//Add your custom indicator logic here.
-			currentTypicalPrice = (High[0] + Low[0] + Close[0]) / 3;
-			
+			currentTypicalPrice = CalculateTypicalPrice();
+
 			if (customCalculation)
 			{
-				// start from custom
+				// Start from custom
 			}
 			else
 			{
-				// start from session
+				// Start from session
 				if (Bars.IsFirstBarOfSession)
 				{
-					cumulativeVolumeWeightedPrice = VOL()[0] * currentTypicalPrice;
-					cumulativeVolume = VOL()[0];
+					ResetCumulativeValues();
 				}
-				else
-				{
-					cumulativeVolumeWeightedPrice = cumulativeVolumeWeightedPrice + (VOL()[0] * currentTypicalPrice);
-					cumulativeVolume = cumulativeVolume + VOL()[0];
-				}
-				
-				vwap = cumulativeVolumeWeightedPrice / cumulativeVolume;
-				PlotVWAP[0] = vwap;
+
+				UpdateCumulativeValues();
+				currentVWAP = CalculateVWAP();
+				PlotVWAP[0] = currentVWAP;
 			}
+		}
+		
+		private double CalculateTypicalPrice()
+		{
+			return (High[0] + Low[0] + Close[0]) / 3;
+		}
+
+		private void ResetCumulativeValues()
+		{
+			cumulativeVolumeWeightedPrice = VOL()[0] * currentTypicalPrice;
+			cumulativeVolume = VOL()[0];
+		}
+
+		private void UpdateCumulativeValues()
+		{
+			cumulativeVolumeWeightedPrice += VOL()[0] * currentTypicalPrice;
+			cumulativeVolume += VOL()[0];
+		}
+
+		private double CalculateVWAP()
+		{
+			return cumulativeVolumeWeightedPrice / cumulativeVolume;
 		}
 
 		#region Properties
