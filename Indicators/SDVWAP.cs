@@ -28,11 +28,12 @@ namespace NinjaTrader.NinjaScript.Indicators.SDFree
 	{
 		#region values
 			
-			double currentTypicalPrice 						= 0;
-			double currentVolumeTypicalPrice 				= 0;
-			double cumulativeVolumeWeightedPrice 			= 0;
-			double cumulativeVolume 						= 0;
-			double currentVWAP								= 0;
+		private double currentTypicalPrice = 0;
+		private double currentVolumeTypicalPrice = 0;
+		private double cumulativeVolumeWeightedPrice = 0;
+		private double cumulativeVolume = 0;
+		private double currentVWAP	= 0;
+		private bool customCalculationStarted = false;
 			
 		#endregion
 		
@@ -57,14 +58,15 @@ namespace NinjaTrader.NinjaScript.Indicators.SDFree
 				
 				#region 00. Sessions Times
 				
-					customCalculation						= false;
-					startCalculation 						= DateTime.Parse("08:30");
+				customCalculation = false;
+				startCalculation = DateTime.Parse("08:30");
+				endCalculation = DateTime.Parse("16:00");
 				
 				#endregion
 				
 				#region Plots
 				
-					AddPlot(new Stroke(Brushes.Yellow, 1), PlotStyle.Line, "PlotVWAP");
+				AddPlot(new Stroke(Brushes.Yellow, 1), PlotStyle.Line, "PlotVWAP");
 				
 				#endregion
 			}
@@ -77,10 +79,9 @@ namespace NinjaTrader.NinjaScript.Indicators.SDFree
 		{
 			//Add your custom indicator logic here.
 			currentTypicalPrice = CalculateTypicalPrice();
-
+			
 			if (customCalculation)
 			{
-				// Start from custom
 			}
 			else
 			{
@@ -130,6 +131,11 @@ namespace NinjaTrader.NinjaScript.Indicators.SDFree
 		public DateTime startCalculation
 		{ get; set; }
 		
+		[NinjaScriptProperty]
+		[PropertyEditor("NinjaTrader.Gui.Tools.TimeEditorKey")]
+		[Display(Name = "Ending time", Description = "Time to end the calculation of VWAP", Order = 2, GroupName = "00. Sessions Times")]
+		public DateTime endCalculation { get; set; }
+		
 		// ----------------------------
 		// Plots
 		// ----------------------------
@@ -151,18 +157,18 @@ namespace NinjaTrader.NinjaScript.Indicators
 	public partial class Indicator : NinjaTrader.Gui.NinjaScript.IndicatorRenderBase
 	{
 		private SDFree.SDVWAP[] cacheSDVWAP;
-		public SDFree.SDVWAP SDVWAP(bool customCalculation, DateTime startCalculation)
+		public SDFree.SDVWAP SDVWAP(bool customCalculation, DateTime startCalculation, DateTime endCalculation)
 		{
-			return SDVWAP(Input, customCalculation, startCalculation);
+			return SDVWAP(Input, customCalculation, startCalculation, endCalculation);
 		}
 
-		public SDFree.SDVWAP SDVWAP(ISeries<double> input, bool customCalculation, DateTime startCalculation)
+		public SDFree.SDVWAP SDVWAP(ISeries<double> input, bool customCalculation, DateTime startCalculation, DateTime endCalculation)
 		{
 			if (cacheSDVWAP != null)
 				for (int idx = 0; idx < cacheSDVWAP.Length; idx++)
-					if (cacheSDVWAP[idx] != null && cacheSDVWAP[idx].customCalculation == customCalculation && cacheSDVWAP[idx].startCalculation == startCalculation && cacheSDVWAP[idx].EqualsInput(input))
+					if (cacheSDVWAP[idx] != null && cacheSDVWAP[idx].customCalculation == customCalculation && cacheSDVWAP[idx].startCalculation == startCalculation && cacheSDVWAP[idx].endCalculation == endCalculation && cacheSDVWAP[idx].EqualsInput(input))
 						return cacheSDVWAP[idx];
-			return CacheIndicator<SDFree.SDVWAP>(new SDFree.SDVWAP(){ customCalculation = customCalculation, startCalculation = startCalculation }, input, ref cacheSDVWAP);
+			return CacheIndicator<SDFree.SDVWAP>(new SDFree.SDVWAP(){ customCalculation = customCalculation, startCalculation = startCalculation, endCalculation = endCalculation }, input, ref cacheSDVWAP);
 		}
 	}
 }
@@ -171,14 +177,14 @@ namespace NinjaTrader.NinjaScript.MarketAnalyzerColumns
 {
 	public partial class MarketAnalyzerColumn : MarketAnalyzerColumnBase
 	{
-		public Indicators.SDFree.SDVWAP SDVWAP(bool customCalculation, DateTime startCalculation)
+		public Indicators.SDFree.SDVWAP SDVWAP(bool customCalculation, DateTime startCalculation, DateTime endCalculation)
 		{
-			return indicator.SDVWAP(Input, customCalculation, startCalculation);
+			return indicator.SDVWAP(Input, customCalculation, startCalculation, endCalculation);
 		}
 
-		public Indicators.SDFree.SDVWAP SDVWAP(ISeries<double> input , bool customCalculation, DateTime startCalculation)
+		public Indicators.SDFree.SDVWAP SDVWAP(ISeries<double> input , bool customCalculation, DateTime startCalculation, DateTime endCalculation)
 		{
-			return indicator.SDVWAP(input, customCalculation, startCalculation);
+			return indicator.SDVWAP(input, customCalculation, startCalculation, endCalculation);
 		}
 	}
 }
@@ -187,14 +193,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
 	public partial class Strategy : NinjaTrader.Gui.NinjaScript.StrategyRenderBase
 	{
-		public Indicators.SDFree.SDVWAP SDVWAP(bool customCalculation, DateTime startCalculation)
+		public Indicators.SDFree.SDVWAP SDVWAP(bool customCalculation, DateTime startCalculation, DateTime endCalculation)
 		{
-			return indicator.SDVWAP(Input, customCalculation, startCalculation);
+			return indicator.SDVWAP(Input, customCalculation, startCalculation, endCalculation);
 		}
 
-		public Indicators.SDFree.SDVWAP SDVWAP(ISeries<double> input , bool customCalculation, DateTime startCalculation)
+		public Indicators.SDFree.SDVWAP SDVWAP(ISeries<double> input , bool customCalculation, DateTime startCalculation, DateTime endCalculation)
 		{
-			return indicator.SDVWAP(input, customCalculation, startCalculation);
+			return indicator.SDVWAP(input, customCalculation, startCalculation, endCalculation);
 		}
 	}
 }
