@@ -28,9 +28,9 @@ namespace NinjaTrader.NinjaScript.Indicators.SDFree
 	{
 		#region values
 			
-			double typicalPrice 							= 0;
-			double volumePerTypicalPrice 					= 0;
-			double cumulativeVolumePerTypicalPrice 			= 0;
+			double currentTypicalPrice 							= 0;
+			double currentVolumeTypicalPrice 					= 0;
+			double cumulativeVolumeWeightedPrice 			= 0;
 			double cumulativeVolume 						= 0;
 			double vwap 									= 0;
 			
@@ -76,7 +76,7 @@ namespace NinjaTrader.NinjaScript.Indicators.SDFree
 		protected override void OnBarUpdate()
 		{
 			//Add your custom indicator logic here.
-			typicalPrice = (High[0] + Low[0] + Close[0]) / 3;
+			currentTypicalPrice = (High[0] + Low[0] + Close[0]) / 3;
 			
 			if (customCalculation)
 			{
@@ -87,16 +87,16 @@ namespace NinjaTrader.NinjaScript.Indicators.SDFree
 				// start from session
 				if (Bars.IsFirstBarOfSession)
 				{
-					cumulativeVolumePerTypicalPrice = VOL()[0] * typicalPrice;
+					cumulativeVolumeWeightedPrice = VOL()[0] * currentTypicalPrice;
 					cumulativeVolume = VOL()[0];
 				}
 				else
 				{
-					cumulativeVolumePerTypicalPrice = cumulativeVolumePerTypicalPrice + (VOL()[0] * typicalPrice);
+					cumulativeVolumeWeightedPrice = cumulativeVolumeWeightedPrice + (VOL()[0] * currentTypicalPrice);
 					cumulativeVolume = cumulativeVolume + VOL()[0];
 				}
 				
-				vwap = cumulativeVolumePerTypicalPrice / cumulativeVolume;
+				vwap = cumulativeVolumeWeightedPrice / cumulativeVolume;
 				PlotVWAP[0] = vwap;
 			}
 		}
