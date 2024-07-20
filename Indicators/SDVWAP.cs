@@ -24,6 +24,7 @@ using NinjaTrader.NinjaScript.DrawingTools;
 //This namespace holds Indicators in this folder and is required. Do not change it. 
 namespace NinjaTrader.NinjaScript.Indicators.SDFree
 {
+	
 	public class SDVWAP : Indicator
 	{
 		#region values
@@ -43,9 +44,9 @@ namespace NinjaTrader.NinjaScript.Indicators.SDFree
 			if (State == State.SetDefaults)
 			{
 				Description									= @"vwap indicator";
-				Name										= "SDVWAP";
+				Name										= "VWAP";
 				Calculate									= Calculate.OnBarClose;
-				IsOverlay									= false;
+				IsOverlay									= true;
 				DisplayInDataBox							= true;
 				DrawOnPricePanel							= true;
 				DrawHorizontalGridLines						= true;
@@ -56,7 +57,7 @@ namespace NinjaTrader.NinjaScript.Indicators.SDFree
 				//See Help Guide for additional information.
 				IsSuspendedWhileInactive					= true;
 				
-				#region 00. Sessions Times
+				#region Interval
 				
 				customCalculation = false;
 				startCalculation = DateTime.Parse("08:30");
@@ -82,9 +83,54 @@ namespace NinjaTrader.NinjaScript.Indicators.SDFree
 			
 			if (customCalculation)
 			{
+				var interval = "Weekly";
+				
+				switch (interval)
+				{
+					case "RTH":
+						if (ConvertLocalToEST(Time[0]).Hour == 9 && ConvertLocalToEST(Time[0]).Minute == 30)
+						{
+							ResetCumulativeValues();
+						}
+						
+						UpdateCumulativeValues();
+						currentVWAP = CalculateVWAP();
+						PlotVWAP[0] = currentVWAP;
+						break;
+						
+					case "Weekly":
+						if (ConvertLocalToEST(Time[0]).DayOfWeek == DayOfWeek.Sunday && Bars.IsFirstBarOfSession)
+						{
+							ResetCumulativeValues();
+						}
+						
+						UpdateCumulativeValues();
+						currentVWAP = CalculateVWAP();
+						PlotVWAP[0] = currentVWAP;
+						break;
+						
+					case "Monthly":
+						var firstDayOfMonth = GetFirstOperableDayOfMonth(Time[0]);
+						var lastDayOfMonth = GetLastOperableDayOfMonth(Time[0]);
+						
+						if (Time[0].Date == lastDayOfMonth.Date && Bars.IsLastBarOfSession)
+						{
+							ResetCumulativeValues();
+						}
+						else if (Time[0].Date == firstDayOfMonth.Date && Bars.IsFirstBarOfSession)
+						{
+							ResetCumulativeValues();
+						}
+
+						UpdateCumulativeValues();
+						currentVWAP = CalculateVWAP();
+						PlotVWAP[0] = currentVWAP;
+						break;
+				}
 			}
 			else
 			{
+
 				// Start from session
 				if (Bars.IsFirstBarOfSession)
 				{
@@ -118,23 +164,59 @@ namespace NinjaTrader.NinjaScript.Indicators.SDFree
 		{
 			return cumulativeVolumeWeightedPrice / cumulativeVolume;
 		}
+		
+        public DateTime ConvertLocalToEST(DateTime localTime)
+        {
+            // Convert local time to UTC
+            DateTime utcTime = localTime.ToUniversalTime();
 
+            // Define the EST time zone (Eastern Standard Time)
+            TimeZoneInfo estZone = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time");
+
+            // Convert UTC time to EST
+            DateTime estTime = TimeZoneInfo.ConvertTimeFromUtc(utcTime, estZone);
+
+            return estTime;
+        }
+		
+	    public static DateTime GetLastOperableDayOfMonth(DateTime date)
+	    {
+	        DateTime lastDayOfMonth = new DateTime(date.Year, date.Month, DateTime.DaysInMonth(date.Year, date.Month));
+			
+	        if (lastDayOfMonth.DayOfWeek == DayOfWeek.Saturday)
+	        {
+	            return lastDayOfMonth.AddDays(1);
+	        }
+	        return lastDayOfMonth;
+	    }
+		
+		private DateTime GetFirstOperableDayOfMonth(DateTime date)
+        {
+            DateTime firstDayOfMonth = new DateTime(date.Year, date.Month, 1);
+
+            if (firstDayOfMonth.DayOfWeek == DayOfWeek.Saturday)
+            {
+                return firstDayOfMonth.AddDays(1);
+            }
+
+            return firstDayOfMonth;
+        }
+		
 		#region Properties
 		[NinjaScriptProperty]
-		[Display(Name="Custom calculation", Order=0, GroupName="00. Sessions Times")]
-		public bool customCalculation
-		{ get; set; }
+		[Display(Name="Custom calculation", Order=0, GroupName="Interval")]
+		public bool customCalculation { get; set; }
 		
 		[NinjaScriptProperty]
 		[PropertyEditor("NinjaTrader.Gui.Tools.TimeEditorKey")]
-		[Display(Name="Starting time", Description="Time to start to calculate VWAP", Order=1, GroupName="00. Sessions Times")]
-		public DateTime startCalculation
-		{ get; set; }
+		[Display(Name="Starting time", Description="Time to start to calculate VWAP", Order=1, GroupName="Interval")]
+		public DateTime startCalculation { get; set; }
 		
 		[NinjaScriptProperty]
 		[PropertyEditor("NinjaTrader.Gui.Tools.TimeEditorKey")]
-		[Display(Name = "Ending time", Description = "Time to end the calculation of VWAP", Order = 2, GroupName = "00. Sessions Times")]
+		[Display(Name = "Ending time", Description = "Time to end the calculation of VWAP", Order = 2, GroupName = "Interval")]
 		public DateTime endCalculation { get; set; }
+
 		
 		// ----------------------------
 		// Plots
